@@ -23,40 +23,47 @@ class Model:
         print("Hellow")
 
     def train(self, json_file):
-        dataframe = pd.read_json(json_file)
-        train, val, test = np.split(dataframe.sample(frac=1), [int(0.8 * len(dataframe)), int(0.9 * len(dataframe))])
-        batch_size = 5
-        train_ds = self.df_to_dataset(train, batch_size=batch_size)
-        [(train_features, label_batch)] = train_ds.take(1)
-        print('Every feature:', list(train_features.keys()))
-        print('A batch of ages:', train_features["350.0"])
-        print('A batch of targets:', label_batch)
-        # Create the model
-        model = Sequential()
-        model.add(Dense(32, activation='relu', input_dim=n_features))
-        model.add(Dense(16, activation='relu'))
-        model.add(Dense(8, activation='relu'))
-        model.add(Dense(n_classes, activation='sigmoid'))
+        dataset = pd.read_json(json_file)
+        dataset = dataset.dropna()
+        train_dataset = dataset.sample(frac=0.8, random_state=0)
+        test_dataset = dataset.drop(train_dataset.index)
 
-        # Compile the model
-        model.compile(loss=binary_crossentropy,
-                      optimizer=Adam(),
-                      metrics=['accuracy'])
+        train_features = train_dataset.copy()
+        test_features = test_dataset.copy()
 
-        # Fit data to model
-        model.fit(X_train, y_train,
-                  batch_size=batch_size,
-                  epochs=n_epochs,
-                  verbose=verbosity,
-                  validation_split=validation_split)
+        train_labels = [train_features.pop("d_r"), train_features.pop("d_b"), train_features.pop("d_g")]
+        test_labels = [test_features.pop("d_r"), test_features.pop("d_b"), test_features.pop("d_g")]
 
-        # Generate generalization metrics
-        score = model.evaluate(X_test, y_test, verbose=0)
-        print(f'Test loss: {score[0]} / Test accuracy: {score[1]}')
+        normalizer = tf.keras.layers.Normalization(axis=-1)
+        normalizer.adapt(np.array(train_features))
+        print(normalizer.mean.numpy())
+
+        # # Create the model
+        # model = Sequential()
+        # model.add(Dense(32, activation='relu', input_dim=n_features))
+        # model.add(Dense(16, activation='relu'))
+        # model.add(Dense(8, activation='relu'))
+        # model.add(Dense(n_classes, activation='sigmoid'))
+        #
+        # # Compile the model
+        # model.compile(loss=binary_crossentropy,
+        #               optimizer=Adam(),
+        #               metrics=['accuracy'])
+        #
+        # # Fit data to model
+        # model.fit(X_train, y_train,
+        #           batch_size=batch_size,
+        #           epochs=n_epochs,
+        #           verbose=verbosity,
+        #           validation_split=validation_split)
+        #
+        # # Generate generalization metrics
+        # score = model.evaluate(X_test, y_test, verbose=0)
+        # print(f'Test loss: {score[0]} / Test accuracy: {score[1]}')
 
     def df_to_dataset(self, dataframe, shuffle=True, batch_size=32):
         df = dataframe.copy()
-        labels = df.pop("d_g")
+        labels = [df.pop("d_r"), df.pop("d_g"), df.pop("d_b")]
         df = {key: value[:, tf.newaxis] for key, value in dataframe.items()}
         ds = tf.data.Dataset.from_tensor_slices((dict(df), labels))
         if shuffle:
