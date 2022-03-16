@@ -65,14 +65,14 @@ class Model:
         #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
 
 
-    def train_model(self, epochs):
+    def train_model(self, epochs, steps_per_epoch):
         history = self.model.fit(
             self.train_features,
             self.train_labels,
             validation_split=self.validation_split,
             verbose=1,
             epochs=epochs,
-            steps_per_epoch=20
+            steps_per_epoch=steps_per_epoch
         )
 
         plot_loss(history)
