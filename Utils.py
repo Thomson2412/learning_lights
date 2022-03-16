@@ -33,8 +33,7 @@ def extract_audio_from_video(input_file_path, output_file_path, overwrite=False)
         if r:
             print('An ERROR occurred!')
         else:
-            print('File is executable!')
-    print("End")
+            print("End")
 
 
 def add_audio_to_video(input_vid, input_audio, output_vid):
@@ -64,8 +63,7 @@ def add_audio_to_video(input_vid, input_audio, output_vid):
         if r:
             print('An ERROR occurred!')
         else:
-            print('File is executable!')
-    print("End")
+            print("End")
 
 
 def generate_video(input_file, output_file):
@@ -77,6 +75,7 @@ def generate_video(input_file, output_file):
     for frame in input_frames:
         out.write(frame)
     out.release()
+
 
 
 class Utils:

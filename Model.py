@@ -1,85 +1,101 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.losses import binary_crossentropy
-from keras.optimizer_v1 import Adam
+from keras import layers
+from keras import models
+from matplotlib import pyplot as plt
 
 
-# Configuration options
-n_samples = 10000
-n_features = 6
-n_classes = 3
-n_labels = 2
-n_epochs = 50
-random_state = 42
-batch_size = 250
-verbosity = 1
-validation_split = 0.2
+def plot_loss(history):
+    plt.plot(history.history["loss"], label="loss")
+    plt.plot(history.history["val_loss"], label="val_loss")
+    plt.ylim([0, max(history.history["val_loss"])])
+    plt.xlabel("Epoch")
+    plt.ylabel("Error")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 class Model:
-    def __init__(self):
-        print("Hellow")
-
-    def train(self, json_file):
+    def __init__(self, json_file, validation_split):
         dataset = pd.read_json(json_file)
         dataset = dataset.dropna()
-        train_dataset = dataset.sample(frac=0.8, random_state=0)
-        test_dataset = dataset.drop(train_dataset.index)
+        self.train_dataset = dataset.sample(frac=1-validation_split, random_state=1)
+        self.test_dataset = dataset.drop(self.train_dataset.index)
 
-        train_features = train_dataset.copy()
-        test_features = test_dataset.copy()
+        self.train_features = self.train_dataset.copy()
+        self.test_features = self.test_dataset.copy()
 
-        train_labels = [train_features.pop("d_r"), train_features.pop("d_b"), train_features.pop("d_g")]
-        test_labels = [test_features.pop("d_r"), test_features.pop("d_b"), test_features.pop("d_g")]
+        self.train_labels = np.array([
+            self.train_features.pop("d_r"),
+            self.train_features.pop("d_b"),
+            self.train_features.pop("d_g")
+        ]).T
+        self.test_labels = np.array([
+            self.test_features.pop("d_r"),
+            self.test_features.pop("d_b"),
+            self.test_features.pop("d_g")
+        ]).T
 
-        normalizer = tf.keras.layers.Normalization(axis=-1)
-        normalizer.adapt(np.array(train_features))
-        print(normalizer.mean.numpy())
+        self.validation_split = validation_split
 
-        # # Create the model
-        # model = Sequential()
-        # model.add(Dense(32, activation='relu', input_dim=n_features))
-        # model.add(Dense(16, activation='relu'))
-        # model.add(Dense(8, activation='relu'))
-        # model.add(Dense(n_classes, activation='sigmoid'))
-        #
-        # # Compile the model
-        # model.compile(loss=binary_crossentropy,
-        #               optimizer=Adam(),
-        #               metrics=['accuracy'])
-        #
-        # # Fit data to model
-        # model.fit(X_train, y_train,
-        #           batch_size=batch_size,
-        #           epochs=n_epochs,
-        #           verbose=verbosity,
-        #           validation_split=validation_split)
-        #
-        # # Generate generalization metrics
-        # score = model.evaluate(X_test, y_test, verbose=0)
-        # print(f'Test loss: {score[0]} / Test accuracy: {score[1]}')
+        normalizer = layers.Normalization(axis=-1)
+        normalizer.adapt(np.array(self.train_features))
 
-    def df_to_dataset(self, dataframe, shuffle=True, batch_size=32):
-        df = dataframe.copy()
-        labels = [df.pop("d_r"), df.pop("d_g"), df.pop("d_b")]
-        df = {key: value[:, tf.newaxis] for key, value in dataframe.items()}
-        ds = tf.data.Dataset.from_tensor_slices((dict(df), labels))
-        if shuffle:
-            ds = ds.shuffle(buffer_size=len(dataframe))
-        ds = ds.batch(batch_size)
-        ds = ds.prefetch(batch_size)
-        return ds
+        self.model = models.Sequential([
+            # normalizer,
+            layers.InputLayer(self.train_features.shape[1]),
+            layers.Dense(256, activation='relu'),
+            layers.Dense(128, activation='relu'),
+            layers.Dense(64, activation='relu'),
+            layers.Dense(32, activation='relu'),
+            layers.Dense(3)
+        ])
+        self.model.summary()
+        # self.model.compile(loss='MeanSquaredLogarithmicError',
+        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001))
+        self.model.compile(loss='MeanSquaredError',
+                           optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+        # self.model.compile(loss='MeanSquaredError',
+        #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
+        # self.model.compile(loss='MeanAbsoluteError',
+        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+        # self.model.compile(loss='MeanAbsoluteError',
+        #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
 
-    def get_normalization_layer(self, name, dataset):
-        # Create a Normalization layer for the feature.
-        normalizer = tf.keras.layers.Normalization(axis=None)
 
-        # Prepare a Dataset that only yields the feature.
-        feature_ds = dataset.map(lambda x, y: x[name])
+    def train_model(self, epochs):
+        history = self.model.fit(
+            self.train_features,
+            self.train_labels,
+            validation_split=self.validation_split,
+            verbose=1,
+            epochs=epochs,
+            steps_per_epoch=20
+        )
 
-        # Learn the statistics of the data.
-        normalizer.adapt(feature_ds)
+        plot_loss(history)
+        print(max(history.history["loss"]))
+        print(min(history.history["loss"]))
+        print(max(history.history["val_loss"]))
+        print(min(history.history["val_loss"]))
 
-        return normalizer
+
+    def predict(self):
+        test_predictions = self.model.predict(self.test_features).flatten()
+        a = plt.axes(aspect='equal')
+        plt.scatter(self.test_labels, test_predictions)
+        plt.xlabel('True Values')
+        plt.ylabel('Predictions')
+        lims = [0, 50]
+        plt.xlim(lims)
+        plt.ylim(lims)
+        _ = plt.plot(lims, lims)
+        plt.show()
+
+        error = test_predictions - self.test_labels.flatten()
+        plt.hist(error, bins=25)
+        plt.xlabel('Prediction Error')
+        _ = plt.ylabel('Count')
+        plt.show()

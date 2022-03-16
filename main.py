@@ -62,5 +62,6 @@ def extract_data(input_path, output_path):
 
 if __name__ == "__main__":
     # extract_data("data/input_video", "data/output_data")
-    model = Model()
-    model.train("data/output_data/panpot_cut/panpot_cut.json")
+    model = Model("data/output_data/panpot_cut/panpot_cut.json", 0.2)
+    model.train_model(2000)
+    model.predict()
