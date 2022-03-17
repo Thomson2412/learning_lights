@@ -3,7 +3,15 @@ import pandas as pd
 import tensorflow as tf
 from keras import layers
 from keras import models
+from keras import backend
 from matplotlib import pyplot as plt
+
+
+def rgb_loss(y_true, y_pred):
+    print(y_true)
+    print(y_pred)
+    loss = backend.abs(y_true - y_pred)
+    return loss
 
 
 def plot_loss(history):
@@ -19,51 +27,66 @@ def plot_loss(history):
 
 class Model:
     def __init__(self, json_file, validation_split):
-        dataset = pd.read_json(json_file)
-        dataset = dataset.dropna()
-        self.train_dataset = dataset.sample(frac=1-validation_split, random_state=1)
-        self.test_dataset = dataset.drop(self.train_dataset.index)
-
-        self.train_features = self.train_dataset.copy()
-        self.test_features = self.test_dataset.copy()
-
-        self.train_labels = np.array([
-            self.train_features.pop("d_r"),
-            self.train_features.pop("d_b"),
-            self.train_features.pop("d_g")
-        ]).T
-        self.test_labels = np.array([
-            self.test_features.pop("d_r"),
-            self.test_features.pop("d_b"),
-            self.test_features.pop("d_g")
-        ]).T
-
         self.validation_split = validation_split
 
+        dataset = pd.read_json(json_file)
+        dataset = dataset.dropna()
+
+        train_split = dataset.sample(frac=1 - validation_split, random_state=1)
+        test_split = dataset.drop(train_split.index)
+
+        self.train_features = train_split.copy()
+        self.test_features = test_split.copy()
+
+        self.train_labels = tf.transpose(
+            tf.constant([
+                self.train_features.pop("d_r"),
+                self.train_features.pop("d_b"),
+                self.train_features.pop("d_g")
+            ], dtype=tf.float32)
+        )
+        self.test_labels = tf.transpose(
+            tf.constant([
+                self.test_features.pop("d_r"),
+                self.test_features.pop("d_b"),
+                self.test_features.pop("d_g")
+            ], dtype=tf.float32)
+        )
+
+        # self.train_labels = tf.constant(self.train_features.pop("d_rgb"), dtype=tf.float32)
+        # self.test_labels = tf.constant(self.test_features.pop("d_rgb"), dtype=tf.float32)
+
+        # self.train_dataset_features = tf.data.Dataset.from_tensor_slices(train_features).batch(batch)
+        # self.train_dataset_labels = tf.data.Dataset.from_tensor_slices(train_labels).batch(batch)
+        # self.test_dataset_features = tf.data.Dataset.from_tensor_slices(test_features).batch(batch)
+        # self.test_dataset_labels = tf.data.Dataset.from_tensor_slices(test_labels).batch(batch)
+
         normalizer = layers.Normalization(axis=-1)
-        normalizer.adapt(np.array(self.train_features))
+        normalizer.adapt(self.train_features)
 
         self.model = models.Sequential([
-            # normalizer,
+            normalizer,
             layers.InputLayer(self.train_features.shape[1]),
-            layers.Dense(256, activation='relu'),
+            layers.Dense(256, activation='relu',),
             layers.Dense(128, activation='relu'),
             layers.Dense(64, activation='relu'),
             layers.Dense(32, activation='relu'),
             layers.Dense(3)
         ])
         self.model.summary()
+
+        # self.model.compile(loss=rgb_loss,
+        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanSquaredLogarithmicError',
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001))
+        # self.model.compile(loss="MeanSquaredError",
+        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         self.model.compile(loss='MeanSquaredError',
-                           optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
-        # self.model.compile(loss='MeanSquaredError',
-        #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
+                           optimizer=tf.keras.optimizers.SGD(learning_rate=0.001))
         # self.model.compile(loss='MeanAbsoluteError',
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanAbsoluteError',
         #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
-
 
     def train_model(self, epochs, steps_per_epoch):
         history = self.model.fit(
@@ -81,11 +104,10 @@ class Model:
         print(max(history.history["val_loss"]))
         print(min(history.history["val_loss"]))
 
-
     def predict(self):
-        test_predictions = self.model.predict(self.test_features).flatten()
+        test_predictions = self.model.predict(self.train_features).flatten()
         a = plt.axes(aspect='equal')
-        plt.scatter(self.test_labels, test_predictions)
+        plt.scatter(self.train_labels, tf.reshape(test_predictions, self.train_labels.shape))
         plt.xlabel('True Values')
         plt.ylabel('Predictions')
         lims = [0, 50]
@@ -94,7 +116,7 @@ class Model:
         _ = plt.plot(lims, lims)
         plt.show()
 
-        error = test_predictions - self.test_labels.flatten()
+        error = tf.reshape(test_predictions, self.train_labels.shape) - self.test_labels
         plt.hist(error, bins=25)
         plt.xlabel('Prediction Error')
         _ = plt.ylabel('Count')
