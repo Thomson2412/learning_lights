@@ -1,6 +1,8 @@
 # learning_lights
 
-![](pix/output.gif)
+<p float="left">
+    <img src="" width="auto" height="200"/>
+</p>
 
 ## Install
 
