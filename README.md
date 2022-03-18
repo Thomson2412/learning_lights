@@ -1,5 +1,9 @@
 # learning_lights
 
+<p float="left">
+    <img src="pix/output.gif" width="600" />
+</p>
+
 ## Install
 
 ```bash
