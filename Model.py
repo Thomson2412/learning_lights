@@ -65,7 +65,7 @@ class Model:
         normalizer.adapt(self.train_features)
 
         self.model = models.Sequential([
-            normalizer,
+            # normalizer,
             layers.InputLayer(self.train_features.shape[1]),
             layers.Dense(256, activation='relu',),
             layers.Dense(128, activation='relu'),
@@ -75,14 +75,16 @@ class Model:
         ])
         self.model.summary()
 
-        # self.model.compile(loss=rgb_loss,
-        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+        self.model.compile(loss=rgb_loss,
+                           optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanSquaredLogarithmicError',
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001))
+        # self.model.compile(loss='MeanSquaredLogarithmicError',
+        #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
         # self.model.compile(loss="MeanSquaredError",
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
-        self.model.compile(loss='MeanSquaredError',
-                           optimizer=tf.keras.optimizers.SGD(learning_rate=0.001))
+        # self.model.compile(loss='MeanSquaredError',
+        #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
         # self.model.compile(loss='MeanAbsoluteError',
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanAbsoluteError',
@@ -104,10 +106,10 @@ class Model:
         print(max(history.history["val_loss"]))
         print(min(history.history["val_loss"]))
 
-    def predict(self):
-        test_predictions = self.model.predict(self.train_features).flatten()
+    def predict_plot(self):
+        test_predictions = self.model.predict(self.test_features).flatten()
         a = plt.axes(aspect='equal')
-        plt.scatter(self.train_labels, tf.reshape(test_predictions, self.train_labels.shape))
+        plt.scatter(self.train_labels, tf.reshape(test_predictions, self.test_labels.shape))
         plt.xlabel('True Values')
         plt.ylabel('Predictions')
         lims = [0, 50]
@@ -121,3 +123,7 @@ class Model:
         plt.xlabel('Prediction Error')
         _ = plt.ylabel('Count')
         plt.show()
+
+    def predict(self, fft):
+        predictions = self.model.predict(fft)
+        return predictions

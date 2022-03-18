@@ -66,16 +66,18 @@ def add_audio_to_video(input_vid, input_audio, output_vid):
             print("End")
 
 
-def generate_video(input_file, output_file):
-    # dominant_color_img = np.full((72, 128, 3), dominant_color)
-    input_frames = []
-    fps = 25
-    size = (input_frames[0].shape[1], input_frames[0].shape[0])
-    out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-    for frame in input_frames:
+def generate_video(input_rgb, output_file, fps, width, height):
+    size = (width, height)
+    out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*"DIVX"), fps, size)
+    last_update = -1
+    for i, rgb in enumerate(input_rgb):
+        frame = np.full((size[1], size[0], 3), rgb, dtype="uint8")
         out.write(frame)
+        progress = int((i / len(input_rgb)) * 100)
+        if progress != last_update:
+            last_update = progress
+            print(f"progress: {progress}%")
     out.release()
-
 
 
 class Utils:
