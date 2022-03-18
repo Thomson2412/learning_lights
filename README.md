@@ -28,3 +28,10 @@ python main.py
 
 Something that can be adjusted to increase the number of training features:
 * `freq_range_split = 10`
+
+## Try
+* Create consistent training data to see how the model reacts
+* Longer features and labels (FFT, RGB) than frame time
+* Label classification [R, G, B]
+* GAN
+* Try with whole images instead of only dominant colors
