@@ -4,12 +4,13 @@ import re
 from PIL import Image
 import cv2
 import numpy as np
+import json
 
 
 def get_dominant_rgb(img):
     img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     img = img.resize((1, 1), resample=0)
-    dominant_color = np.asarray(img.getpixel((0, 0)), "uint8")
+    dominant_color = np.asarray(img.getpixel((0, 0)), "uint8").clip(min=0)
     return dominant_color
 
 
@@ -66,7 +67,7 @@ def add_audio_to_video(input_vid, input_audio, output_vid):
             print("End")
 
 
-def generate_video(input_rgb, output_file, fps, width, height):
+def generate_result_video(input_rgb, output_file, fps, width, height):
     size = (width, height)
     out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*"DIVX"), fps, size)
     last_update = -1
@@ -76,7 +77,26 @@ def generate_video(input_rgb, output_file, fps, width, height):
         progress = int((i / len(input_rgb)) * 100)
         if progress != last_update:
             last_update = progress
-            print(f"progress: {progress}%")
+            print(f"Result video progress: {progress}%")
+    out.release()
+
+
+def generate_training_video(input_json, output_file, fps, width, height):
+    size = (width, height)
+    out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*"DIVX"), fps, size)
+    last_update = -1
+    input_rgb = np.array(
+        [list(input_json["d_r"].values()),
+         list(input_json["d_g"].values()),
+         list(input_json["d_b"].values())]
+    ).T
+    for i, rgb in enumerate(input_rgb):
+        frame = np.full((size[1], size[0], 3), rgb, dtype="uint8")
+        out.write(frame)
+        progress = int((i / len(input_rgb)) * 100)
+        if progress != last_update:
+            last_update = progress
+            print(f"Training video progress: {progress}%")
     out.release()
 
 

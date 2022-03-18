@@ -65,18 +65,18 @@ class Model:
         normalizer.adapt(self.train_features)
 
         self.model = models.Sequential([
-            # normalizer,
+            normalizer,
             layers.InputLayer(self.train_features.shape[1]),
             layers.Dense(256, activation='relu',),
-            layers.Dense(128, activation='relu'),
-            layers.Dense(64, activation='relu'),
-            layers.Dense(32, activation='relu'),
+            layers.Dense(256, activation='relu'),
+            layers.Dense(256, activation='relu'),
+            layers.Dense(256, activation='relu'),
             layers.Dense(3)
         ])
         self.model.summary()
 
-        self.model.compile(loss=rgb_loss,
-                           optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+        # self.model.compile(loss=rgb_loss,
+        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanSquaredLogarithmicError',
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001))
         # self.model.compile(loss='MeanSquaredLogarithmicError',
@@ -85,8 +85,8 @@ class Model:
         #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanSquaredError',
         #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
-        # self.model.compile(loss='MeanAbsoluteError',
-        #                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+        self.model.compile(loss='MeanAbsoluteError',
+                           optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
         # self.model.compile(loss='MeanAbsoluteError',
         #                    optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001))
 
