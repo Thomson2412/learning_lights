@@ -1,7 +1,7 @@
 # learning_lights
 
 <p float="left">
-    <img src="" width="auto" height="200"/>
+    <img src="pix/output.gif" width="auto" height="200"/>
 </p>
 
 ## Install
